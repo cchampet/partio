@@ -158,14 +158,12 @@ void CPartioVizTranslator::NodeInitializer(CAbTranslator context)
     data.shortName = "ai_export_attributes";
     helper.MakeInputString(data);
 
-#ifdef ARNOLD5
-    data.defaultValue.STR() = AtString("");
-#else
+#ifndef ARNOLD5
     data.defaultValue.STR = "";
-#endif
     data.name = "aiOverrideProcedural";
     data.shortName = "ai_override_procedural";
     helper.MakeInputString(data);
+#endif
 }
 
 AtNode* CPartioVizTranslator::CreateArnoldNodes()
