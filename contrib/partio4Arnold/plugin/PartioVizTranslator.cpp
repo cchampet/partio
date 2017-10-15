@@ -26,7 +26,11 @@ void* CPartioVizTranslator::creator()
 
 void CPartioVizTranslator::NodeInitializer(CAbTranslator context)
 {
+#if MTOA12
     CExtensionAttrHelper helper(context.maya, "procedural");
+#else
+    CExtensionAttrHelper helper(context.maya, "partioGenerator");
+#endif
     CShapeTranslator::MakeCommonAttributes(helper);
 
     CAttrData data;
@@ -166,15 +170,20 @@ void CPartioVizTranslator::NodeInitializer(CAbTranslator context)
 
 AtNode* CPartioVizTranslator::CreateArnoldNodes()
 {
+#if MTOA12
     return IsMasterInstance() ? AddArnoldNode("procedural") : AddArnoldNode("ginstance");
+#else
+    return IsMasterInstance() ? AddArnoldNode("partioGenerator") : AddArnoldNode("ginstance");
+#endif
 }
 
 void CPartioVizTranslator::Export(AtNode* anode)
 {
-    if (AiNodeIs(anode, ginstanceName))
+    if (AiNodeIs(anode, ginstanceName)) {
         ExportInstance(anode, GetMasterInstance());
-    else
+    } else {
         ExportProcedural(anode, false);
+    }
 }
 
 #ifdef MTOA12
@@ -282,8 +291,7 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
     ProcessRenderFlags(procedural);
     ExportPartioVizShaders(procedural);
 
-    if (!update)
-    {
+    if (!update) {
         MString dso = "[PARTIO_ARNOLD_PROCEDURAL]";
 
         // we add this here so we can add in a custom   particle reading procedural instead of the default one
@@ -309,8 +317,7 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
 
         MString formatString = "%0";
         // special case for PDCs and maya nCache files because of the funky naming convention  TODO: support substepped/retiming  caches
-        if (formatExt == "pdc")
-        {
+        if (formatExt == "pdc") {
             finalFrame *= 6000 / 24;
             cachePadding = 1;
         }
@@ -330,22 +337,45 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
 
         formattedName.split('<', foo);
         MString newFoo;
-        if (foo.length() > 1)
-        {
+        if (foo.length() > 1) {
             foo[1] = foo[1].substring(6, foo[1].length() - 1);
             newFoo = foo[0] + MString(frameString) + foo[1];
-        }
-        else
+        } else {
             newFoo = foo[0];
+        }
 
-        if (!fileCacheExists(newFoo.asChar()))
-        {
+        if (!fileCacheExists(newFoo.asChar())) {
             AiMsgWarning("[mtoa] PartioVisualizer %s being skipped, can't find cache file.", m_DagNode.name().asChar());
             return 0;
         }
 
         // TODO: change these attributes to FindMayaPlug to support MtoA override nodes
 
+        MTime oneSec(1.0, MTime::kSeconds);
+        float fps = (float)oneSec.asUnits(MTime::uiUnit());
+
+        MPlug partioAttrs = m_DagNode.findPlug("partioCacheAttributes");
+
+        MFloatVector defaultColor;
+
+        MPlug defaultColorPlug = m_DagNode.findPlug("defaultPointColor");
+
+        MPlug defaultColorComp = defaultColorPlug.child(0);
+        defaultColorComp.getValue(defaultColor.x);
+        defaultColorComp = defaultColorPlug.child(1);
+        defaultColorComp.getValue(defaultColor.y);
+        defaultColorComp = defaultColorPlug.child(2);
+        defaultColorComp.getValue(defaultColor.z);
+
+        float defaultOpac = m_DagNode.findPlug("defaultAlpha").asFloat();      
+
+        /////////////////////////////////////////
+        // support  exporting volume step size
+        float stepSize = m_DagNode.findPlug("aiStepSize").asFloat();
+
+        m_customAttrs = m_DagNode.findPlug("aiExportAttributes").asString();
+
+#if MTOA12
         AiNodeSetStr(procedural, "dso", dso.asChar());
         AiNodeSetBool(procedural, "load_at_init", true);
 
@@ -373,8 +403,6 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
         AiNodeDeclare(procedural, "global_motionByFrame", "constant FLOAT");
         AiNodeSetFlt(procedural, "global_motionByFrame", (float)GetMotionByFrame());
 
-        MTime oneSec(1.0, MTime::kSeconds);
-        float fps = (float)oneSec.asUnits(MTime::uiUnit());
         AiNodeDeclare(procedural, "global_fps", "constant FLOAT");
         AiNodeSetFlt(procedural, "global_fps", fps);
 
@@ -394,8 +422,6 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
         AiNodeDeclare(procedural, "arg_radFrom", "constant STRING");
         AiNodeDeclare(procedural, "arg_incandFrom", "constant STRING");
 
-        MPlug partioAttrs = m_DagNode.findPlug("partioCacheAttributes");
-
         AiNodeSetStr(procedural, "arg_velFrom", m_DagNode.findPlug("velocityFrom").asString().asChar());
         AiNodeSetStr(procedural, "arg_accFrom", m_DagNode.findPlug("accelerationFrom").asString().asChar());
         AiNodeSetStr(procedural, "arg_rgbFrom", m_DagNode.findPlug("colorFrom").asString().asChar());
@@ -403,41 +429,53 @@ AtNode* CPartioVizTranslator::ExportProcedural(AtNode* procedural, bool update)
         AiNodeSetStr(procedural, "arg_radFrom", m_DagNode.findPlug("radiusFrom").asString().asChar());
         AiNodeSetStr(procedural, "arg_incandFrom", m_DagNode.findPlug("incandescenceFrom").asString().asChar());
 
-        MFloatVector defaultColor;
-
-        MPlug defaultColorPlug = m_DagNode.findPlug("defaultPointColor");
-
-        MPlug defaultColorComp = defaultColorPlug.child(0);
-        defaultColorComp.getValue(defaultColor.x);
-        defaultColorComp = defaultColorPlug.child(1);
-        defaultColorComp.getValue(defaultColor.y);
-        defaultColorComp = defaultColorPlug.child(2);
-        defaultColorComp.getValue(defaultColor.z);
-
-        float defaultOpac = m_DagNode.findPlug("defaultAlpha").asFloat();
         AiNodeDeclare(procedural, "arg_defaultColor", "constant RGB");
         AiNodeDeclare(procedural, "arg_defaultOpac", "constant FLOAT");
 
         AiNodeSetRGB(procedural, "arg_defaultColor", defaultColor.x, defaultColor.y, defaultColor.z);
         AiNodeSetFlt(procedural, "arg_defaultOpac", defaultOpac);
 
-        /////////////////////////////////////////
-        // support  exporting volume step size
-        float stepSize = m_DagNode.findPlug("aiStepSize").asFloat();
         if (stepSize > 0)
         {
             AiNodeDeclare(procedural, "arg_stepSize", "constant FLOAT");
             AiNodeSetFlt(procedural, "arg_stepSize", stepSize);
         }
 
-        m_customAttrs = m_DagNode.findPlug("aiExportAttributes").asString();
-
         if (m_customAttrs.length() > 0)
         {
             AiNodeDeclare(procedural, "arg_extraPPAttrs", "constant STRING");
             AiNodeSetStr(procedural, "arg_extraPPAttrs", m_customAttrs.asChar());
         }
+#else
+        AiNodeSetStr(procedural, "file", newFoo.asChar());
+        AiNodeSetFlt(procedural, "radius", m_DagNode.findPlug("defaultRadius").asFloat());
+        AiNodeSetFlt(procedural, "maxParticleRadius", m_DagNode.findPlug("aiMaxParticleRadius").asFloat());
+        AiNodeSetFlt(procedural, "minParticleRadius", m_DagNode.findPlug("aiMinParticleRadius").asFloat());
+        AiNodeSetFlt(procedural, "filterSmallParticles", m_DagNode.findPlug("aiFilterSmallParticles").asFloat());
+        AiNodeSetBool(procedural, "overrideRadiusPP", m_DagNode.findPlug("aiOverrideRadiusPP").asBool());
+        AiNodeSetInt(procedural, "global_motionBlurSteps", (int)GetNumMotionSteps());
+        AiNodeSetFlt(procedural, "global_motionByFrame", (float)GetMotionByFrame());
+        AiNodeSetFlt(procedural, "global_fps", fps);
+        AiNodeSetFlt(procedural, "motionBlurMult", m_DagNode.findPlug("aiMotionBlurMultiplier").asFloat());
+        AiNodeSetInt(procedural, "renderType", m_DagNode.findPlug("aiRenderPointsAs").asInt());
+        AiNodeSetFlt(procedural, "radiusMult", m_DagNode.findPlug("aiRadiusMultiplier").asFloat());
+        AiNodeSetStr(procedural, "velFrom", m_DagNode.findPlug("velocityFrom").asString().asChar());
+        AiNodeSetStr(procedural, "accFrom", m_DagNode.findPlug("accelerationFrom").asString().asChar());
+        AiNodeSetStr(procedural, "rgbFrom", m_DagNode.findPlug("colorFrom").asString().asChar());
+        AiNodeSetStr(procedural, "opacFrom", m_DagNode.findPlug("opacityFrom").asString().asChar());
+        AiNodeSetStr(procedural, "radFrom", m_DagNode.findPlug("radiusFrom").asString().asChar());
+        AiNodeSetStr(procedural, "incandFrom", m_DagNode.findPlug("incandescenceFrom").asString().asChar());
+        AiNodeSetRGB(procedural, "defaultColor", defaultColor.x, defaultColor.y, defaultColor.z);
+        AiNodeSetFlt(procedural, "defaultOpac", defaultOpac);
 
+        if (stepSize > 0) {
+            AiNodeSetFlt(procedural, "stepSize", stepSize);
+        }
+
+        if (m_customAttrs.length() > 0) {
+            AiNodeSetStr(procedural, "extraPPAttrs", m_customAttrs.asChar());
+        }
+#endif
         ExportLightLinking(procedural);
     }
 
