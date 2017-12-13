@@ -70,6 +70,8 @@ IF(WIN32)
     set(CMAKE_MODULE_PATH ${PARTIO_HOME}/cmake)
 ELSE(WIN32)
     ADD_DEFINITIONS (-Wextra -Wno-unused-parameter)
+    SET( CMAKE_CXX_FLAGS "-fPIC -std=c++11")  # add c++11 for Maya 2018
+
     SET( CMAKE_CXX_FLAGS "-fPIC")
 ENDIF(WIN32)
 
@@ -108,11 +110,11 @@ ENDIF(ZLIB_FOUND)
 ## Make modules able to see partio library
 # Setup environment variable to link partio
 IF (WIN32)
-    SET( PARTIO_LIBRARIES zlib partio )
+    SET( PARTIO_LIBRARIES freeglut zlib partio )
 ELSEIF(APPLE)
-    SET( PARTIO_LIBRARIES ${ZLIB_LIBRARY} partio )
+    SET( PARTIO_LIBRARIES ${GLUT_glut_LIBRARY} ${GLUT_cocoa_LIBRARY} ${ZLIB_LIBRARY} partio )
 ELSEIF (UNIX)
-    SET( PARTIO_LIBRARIES z partio )
+    SET( PARTIO_LIBRARIES glut z partio )
 ENDIF()
 # make it so partio can be found
 INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/src/lib )
@@ -150,6 +152,16 @@ ELSE (LEGACY_BUILD_MODE)
         # Temp removal of the python bindings, have to figure out how to change the swig files
         #ADD_SUBDIRECTORY (src/py)
         ADD_SUBDIRECTORY (src/tests)
+
+        ## Search for useful libraries
+        find_package(GLUT REQUIRED)
+        IF(GLUT_FOUND)
+            INCLUDE_DIRECTORIES( ${GLUT_INCLUDE_PATH} )
+            LINK_DIRECTORIES (${GLUT_ROOT_PATH}/lib/x64)
+        ELSE(GLUT_FOUND)
+            INCLUDE_DIRECTORIES( ${GLUT_INCLUDE_PATH} )
+            LINK_DIRECTORIES ( ${GLUT_LIBRARY_PATH} )
+        ENDIF(GLUT_FOUND)
     ENDIF (BUILD_PARTIO_LIBRARY)
     #ADD_SUBDIRECTORY (src/houdini)
     #ADD_DEFINITIONS_SUBDIRECTORY (src/doc)

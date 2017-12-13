@@ -2,11 +2,11 @@
 # This module searches for a valid PartIO build.
 
 find_path(PARTIO_LIBRARY_DIR libpartio.a
-    PATHS $ENV{PARTIO_HOME}/lib
+    PATHS ${CMAKE_INSTALL_PREFIX}lib/${PARTIO_BUILD_PLATFORM}
     DOC "PartIO library path")
 
 find_path(PARTIO_INCLUDE_DIR Partio.h
-    PATHS $ENV{PARTIO_HOME}/include
+    PATHS ${CMAKE_INSTALL_PREFIX}include
     DOC "PartIO include path")
 
 include(FindPackageHandleStandardArgs)

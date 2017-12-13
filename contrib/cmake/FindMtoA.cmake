@@ -18,7 +18,7 @@ find_package(PackageHandleStandardArgs)
 ##
 ## Obtain MtoA install location
 ##
-find_path(MTOA_LOCATION include/render/AOV.h
+find_path(MTOA_LOCATION /bin/kick     # Mikros
           HINTS ENV MTOA_ROOT
           NO_DEFAULT_PATH
           NO_SYSTEM_ENVIRONMENT_PATH)
