@@ -155,6 +155,7 @@ public:
 	static MObject aByFrame;
     static MObject aSize;         // The size of the logo
     static MObject aDrawSkip;
+    static MObject aLoadSkip;
     static MObject aFlipYZ;
     static MObject aUpdateCache;
     static MObject aCacheDir;

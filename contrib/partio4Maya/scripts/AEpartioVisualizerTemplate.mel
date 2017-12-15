@@ -59,6 +59,7 @@ global proc AEpartioVisualizerTemplate( string $nodeName )
             editorTemplate -addControl "pointSize";
             editorTemplate -addControl "drawStyle";
             editorTemplate -addControl "drawSkip";
+            editorTemplate -addControl "loadSkip";
             editorTemplate -addControl "defaultPointColor";
             editorTemplate -addControl "defaultAlpha";
             editorTemplate -addControl "invertAlpha";

@@ -53,8 +53,7 @@ void writeHoudiniStr(ostream& ostream,const string& s)
     ostream.write(s.c_str(),s.size());
 }
 
-
-ParticlesDataMutable* readBGEO(const char* filename,const bool headersOnly)
+ParticlesDataMutable* readBGEO(const char* filename,const bool headersOnly, const unsigned short nSkipBy)
 {
     auto_ptr<istream> input(Gzip_In(filename,ios::in|ios::binary));
     if(!*input){
@@ -94,8 +93,10 @@ ParticlesDataMutable* readBGEO(const char* filename,const bool headersOnly)
     if(headersOnly) simple=new ParticleHeaders;
     else simple=create();
 
-    simple->addParticles(nPoints);
-
+    if (nSkipBy > 0)
+        simple->addParticles(nPoints/nSkipBy);
+    else
+        simple->addParticles(nPoints);
 
     // Read attribute definitions
     int particleSize=4; // Size in # of 32 bit primitives
@@ -190,6 +191,13 @@ ParticlesDataMutable* readBGEO(const char* filename,const bool headersOnly)
 
     // return the populated simpleParticle
     return simple;
+}
+
+ParticlesDataMutable* readBGEO(const char* filename,const bool headersOnly)
+{
+    const unsigned short nSkipBy = 1;
+
+    return readBGEO(filename,headersOnly,nSkipBy);
 }
 
 bool writeBGEO(const char* filename,const ParticlesData& p,const bool compressed)

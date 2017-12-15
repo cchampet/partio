@@ -29,6 +29,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
 #include "partioVisualizer.h"
 
+#include "../../src/lib/io/BGEO.cpp"
+
 static MGLFunctionTable* gGLFT = NULL;
 
 
@@ -50,6 +52,8 @@ static MGLFunctionTable* gGLFT = NULL;
 
 #include <iostream>
 
+#include <string>
+
 /// ///////////////////////////////////////////////////
 /// PARTIO VISUALIZER
 
@@ -58,6 +62,7 @@ MTypeId partioVisualizer::id(ID_PARTIOVISUALIZER);
 MObject partioVisualizer::time;
 MObject partioVisualizer::aByFrame;
 MObject partioVisualizer::aDrawSkip;
+MObject partioVisualizer::aLoadSkip;     // mikros
 MObject partioVisualizer::aUpdateCache;
 MObject partioVisualizer::aSize;         // The size of the logo
 MObject partioVisualizer::aFlipYZ;
@@ -404,10 +409,15 @@ MStatus partioVisualizer::initialize()
     aRenderCachePath = tAttr.create("renderCachePath", "rcp", MFnStringData::kString);
     nAttr.setHidden(true);
 
+    aLoadSkip = nAttr.create("loadSkip", "lsk", MFnNumericData::kInt, 0);
+    nAttr.setDefault(false);
+    nAttr.setKeyable(false);
+
     addAttribute(aUpdateCache);
     addAttribute(aSize);
     addAttribute(aFlipYZ);
     addAttribute(aDrawSkip);
+    addAttribute(aLoadSkip);
     addAttribute(aCacheDir);
     addAttribute(aCacheFile);
     addAttribute(aCacheOffset);
@@ -457,6 +467,7 @@ MStatus partioVisualizer::initialize()
     attributeAffects(aByFrame, aRenderCachePath);
     attributeAffects(time, aUpdateCache);
     attributeAffects(time, aRenderCachePath);
+    attributeAffects(aLoadSkip, aUpdateCache);
 
     return MS::kSuccess;
 }
@@ -504,6 +515,7 @@ MStatus partioVisualizer::compute(const MPlug& plug, MDataBlock& block)
         const int byFrame = block.inputValue(aByFrame).asInt();
         const bool flipYZ = block.inputValue(aFlipYZ).asBool();
         const MString renderCachePath = block.inputValue(aRenderCachePath).asString();
+        const int loadSkip = block.inputValue(aLoadSkip).asInt();
 
         bool forceReload = block.inputValue(aForceReload).asBool();
         MString formatExt = "";
@@ -572,7 +584,17 @@ MStatus partioVisualizer::compute(const MPlug& plug, MDataBlock& block)
 
             pvCache.clear();
 
-            pvCache.particles = PARTIO::read(newCacheFile.asChar());
+            short extENum = block.inputValue(aCacheFormat).asShort();
+            MString sExtension = partio4Maya::setExt(extENum);
+
+            if (sExtension == "bhclassic")
+            {
+                const int nSkipBy = block.inputValue(aLoadSkip).asInt();
+                pvCache.particles = PARTIO::readBGEO(newCacheFile.asChar(), false, nSkipBy);
+            }
+            else
+                pvCache.particles = PARTIO::read(newCacheFile.asChar());
+
             ///////////////////////////////////////
 
             mLastFileLoaded = newCacheFile;
