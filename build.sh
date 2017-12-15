@@ -4,7 +4,7 @@ build_partio_lib=1
 build_partio_maya=1
 build_partio_arnold=1
 
-suppress_build_dirs_prior_build=0
+suppress_build_dirs_prior_build=1
 copy_to_local_package=1
 
 build_type=Release
@@ -15,28 +15,45 @@ build_type=Release
 #																				#
 #################################################################################
 
-mayaVersion=2018.0.0
-
+maya_version=2018.0.0
 arnold_version='5.0.2.1'
 mtoa_version='2.1.0.1.21'
 
-swig_executable='/s/apps/packages/dev/swig/3.0.5/platform-linux/bin/swig'
+# maya_version=2016.sp6
+# arnold_version='5.0.2.1'
+# mtoa_version='2.1.0.1.21'
+
+# maya_version=ext2.2016.sp2.p13
+# arnold_version='5.0.2.1'
+# mtoa_version='2.1.0.1.21'
+
+swig_executable='$REZ_PACKAGES_ROOT/dev/swig/3.0.5/platform-linux/bin/swig'
 
 glew_include_dir=$REZ_GLEW_ROOT'/include'
 glew_static_library=$REZ_GLEW_ROOT'/lib64/libGLEW.a'
 
-local_build_dir='/datas/hda/build'
+local_build_dir=$PWD
 
 #################################################################################
-maya_version_short="$(cut -d'.' -f1 <<<"$mayaVersion")"  # ex : 2018
+maya_package_root=$REZ_PACKAGES_ROOT'/cg/maya'
+
+
+A="$(cut -d'.' -f1 <<<"$maya_version")"
+B="$(cut -d'.' -f2 <<<"$maya_version")"
+
+if [ "$A" == "ext2" ] && [ "$B" == "2016" ]; then
+	maya_version_short='ext2.2016'
+else
+	maya_version_short=$A
+fi
 
 A="$(cut -d'.' -f1 <<<"$mtoa_version")"
 B="$(cut -d'.' -f2 <<<"$mtoa_version")"
 
 mtoa_version_short=${A}.${B}
 
-export ARNOLD_HOME=/s/apps/packages/cg/arnold/$arnold_version/platform-linux
-export MTOA_ROOT=/s/apps/packages/mikros/mayaModules/mimtoa/$mtoa_version/platform-linux/maya-$maya_version_short
+export ARNOLD_HOME=$REZ_PACKAGES_ROOT/cg/arnold/$arnold_version/platform-linux
+export MTOA_ROOT=$REZ_PACKAGES_ROOT/mikros/mayaModules/mimtoa/$mtoa_version/platform-linux/maya-$maya_version_short
 
 # copy to local package
 maya_variant_package=$maya_version_short
@@ -44,8 +61,8 @@ mtoa_variant_package=$mtoa_version_short
 
 if [ "$suppress_build_dirs_prior_build" == 1 ]; then
 
-	rm -fr $local_build_dir/partio/partio.build
-	rm -fr $local_build_dir/partio/build-Linux-x86_64
+	rm -fr $local_build_dir/partio.build
+	rm -fr $local_build_dir/build-Linux-x86_64
 	
 	mkdir partio.build
 	mkdir build-Linux-x86_64
@@ -71,8 +88,8 @@ fi
 if [ "$build_partio_maya" == 1 ]; then
 
 	echo "BUILD PARTIO MAYA"
-		
-	maya_executable='/s/apps/packages/cg/maya/'$mayaVersion'/platform-linux/bin/maya'	
+
+	maya_executable=$maya_package_root'/'$maya_version'/platform-linux/bin/maya'
 	
 	cmake .. \
 	-DCMAKE_BUILD_TYPE=$build_type \
@@ -105,19 +122,20 @@ if [ "$build_partio_arnold" == 1 ]; then
     make install
 fi
 
-# Copy to may local package:
+# Copy to my local dev packages:
 if [ "$copy_to_local_package" == 1 ]; then
 
 	if [ "$build_partio_maya" == 1 ]; then
-		cp -v $local_build_dir/partio/build-Linux-x86_64/maya/$maya_variant_package/plug-ins/Linux-x86_64/partio4Maya.so 	/s/apps/users/hda/packages/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/plug-ins
-		cp -v $local_build_dir/partio/contrib/partio4Maya/scripts/*.mel 													/s/apps/users/hda/packages/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/scripts
-		cp -v $local_build_dir/partio/contrib/partio4Maya/icons/*.xpm 														/s/apps/users/hda/packages/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/icons
+
+		cp -v $local_build_dir/partio.build/contrib/partio4Maya/partio4Maya.so 						$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/plug-ins
+		cp -v $local_build_dir/contrib/partio4Maya/scripts/*.mel 									$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/scripts
+		cp -v $local_build_dir/contrib/partio4Maya/icons/* 											$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/icons
 	fi
 
 	if [ "$build_partio_arnold" == 1 ]; then
-		cp -v "$local_build_dir"/partio/build-Linux-x86_64/arnold/procedurals/partioGenerator.so 			/s/apps/users/hda/packages/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
-		cp -v "$local_build_dir"/partio//contrib/partio4Arnold/plugin/partioTranslator.py 					/s/apps/users/hda/packages/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
-		cp -v "$local_build_dir"/partio/build-Linux-x86_64/extensions/partioTranslator.so 					/s/apps/users/hda/packages/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
-		cp -v "$local_build_dir"/partio/build-Linux-x86_64/arnold/procedurals/partioGenerator.so 			/s/apps/users/hda/packages/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/procedurals/
+
+		cp -v $local_build_dir//contrib/partio4Arnold/plugin/partioTranslator.py 					$REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
+		cp -v $local_build_dir/build-Linux-x86_64/extensions/partioTranslator.so 					$REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
+		cp -v $local_build_dir/build-Linux-x86_64/arnold/procedurals/partioGenerator.so 			$REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/procedurals/
 	fi
 fi
