@@ -16,16 +16,13 @@ build_type=Release
 #################################################################################
 
 maya_version=2018.0.0
-arnold_version='5.0.2.1'
-mtoa_version='2.1.0.1.21'
+#maya_version=2016.sp6
+#maya_version=ext2.2016.sp2.p13
 
-# maya_version=2016.sp6
-# arnold_version='5.0.2.1'
-# mtoa_version='2.1.0.1.21'
+arnold_version='5.1.0.1'
+mtoa_version='3.0.0.2.22'
 
-# maya_version=ext2.2016.sp2.p13
-# arnold_version='5.0.2.1'
-# mtoa_version='2.1.0.1.21'
+
 
 swig_executable='$REZ_PACKAGES_ROOT/dev/swig/3.0.5/platform-linux/bin/swig'
 
@@ -127,12 +124,19 @@ if [ "$copy_to_local_package" == 1 ]; then
 
 	if [ "$build_partio_maya" == 1 ]; then
 
+		mkdir -p $REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/plug-ins
+		mkdir -p $REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/scripts
+		mkdir -p $REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/icons
+
 		cp -v $local_build_dir/partio.build/contrib/partio4Maya/partio4Maya.so 						$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/plug-ins
 		cp -v $local_build_dir/contrib/partio4Maya/scripts/*.mel 									$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/scripts
 		cp -v $local_build_dir/contrib/partio4Maya/icons/* 											$REZ_DEV_PACKAGES_ROOT/cgDev/partioMaya/dev/platform-linux/maya-$maya_variant_package/icons
 	fi
 
 	if [ "$build_partio_arnold" == 1 ]; then
+
+		mkdir -p $REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
+		mkdir -p $REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/procedurals/
 
 		cp -v $local_build_dir//contrib/partio4Arnold/plugin/partioTranslator.py 					$REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
 		cp -v $local_build_dir/build-Linux-x86_64/extensions/partioTranslator.so 					$REZ_DEV_PACKAGES_ROOT/cgDev/partioArnold/dev/platform-linux/mimtoa-$mtoa_variant_package/maya-$maya_variant_package/extensions/
